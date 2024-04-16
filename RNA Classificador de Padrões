@@ -1,0 +1,82 @@
+#Aline Stolai 22.121.003-2
+#João Lucas Rocha 22.121.004-0
+
+from sklearn.datasets import load_iris
+from sklearn.neural_network import MLPClassifier
+from sklearn.decomposition import PCA
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
+
+def evaluate_classifier(classifier, features, target):
+    # Faça previsões
+    predicoes = classifier.predict(features)
+    
+    # Calcule a precisão
+    precisao = accuracy_score(target, predicoes)
+    
+    # Construa a matriz de confusão
+    matriz_confusao = confusion_matrix(target, predicoes)
+    
+    return precisao, matriz_confusao
+
+data = load_iris()
+
+features = data.data
+target = data.target
+
+# Divida os dados em conjuntos de treinamento e teste
+features_train, features_test, target_train, target_test = train_test_split(features, target, test_size=0.2, random_state=42)
+
+plt.figure(figsize=(16, 8))
+plt.subplot(2, 2, 1)
+plt.scatter(features[:, 0], features[:, 1], c=target, marker='o', cmap='viridis')
+
+Classificador = MLPClassifier(hidden_layer_sizes=(10), alpha=1, max_iter=100)
+Classificador.fit(features_train, target_train)
+precisao_original, matriz_confusao_original = evaluate_classifier(Classificador, features_test, target_test)
+print("Precisão do classificador original:", precisao_original)
+print("Matriz de Confusão do classificador original:")
+print(matriz_confusao_original)
+
+predicoes = Classificador.predict(features)
+
+plt.subplot(2, 2, 3)
+plt.scatter(features[:, 0], features[:, 1], c=predicoes, marker='d', cmap='viridis', s=150)
+plt.scatter(features[:, 0], features[:, 1], c=target, marker='o', cmap='viridis', s=15)
+
+pca = PCA(n_components=2, whiten=True, svd_solver='randomized')
+pca = pca.fit(features)
+pca_features = pca.transform(features)
+print('Mantida %5.2f%% da informação do conjunto inicial de dados' % (sum(pca.explained_variance_ratio_) * 100))
+
+plt.subplot(2, 2, 2)
+plt.scatter(pca_features[:, 0], pca_features[:, 1], c=target, marker='o', cmap='viridis')
+
+ClassificadorPCA = MLPClassifier(hidden_layer_sizes=(10), alpha=1, max_iter=1000)
+ClassificadorPCA.fit(pca_features, target)
+precisao_pca, matriz_confusao_pca = evaluate_classifier(ClassificadorPCA, pca_features, target)
+print("\nPrecisão do classificador PCA:", precisao_pca)
+print("Matriz de Confusão do classificador PCA:")
+print(matriz_confusao_pca)
+
+predicoes_pca = ClassificadorPCA.predict(pca_features)
+
+plt.subplot(2, 2, 4)
+plt.scatter(pca_features[:, 0], pca_features[:, 1], c=predicoes_pca, marker='d', cmap='viridis', s=150)
+plt.scatter(pca_features[:, 0], pca_features[:, 1], c=target, marker='o', cmap='viridis', s=15)
+plt.show()
+
+# Matriz de confusão sem PCA
+cm = confusion_matrix(target, predicoes)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=data.target_names)
+disp.plot()
+plt.title('Matriz de Confusão sem PCA')
+plt.show()
+
+# Matriz de confusão com PCA
+cm_pca = confusion_matrix(target, predicoes_pca)
+disp_pca = ConfusionMatrixDisplay(confusion_matrix=cm_pca, display_labels=data.target_names)
+disp_pca.plot()
+plt.title('Matriz de Confusão com PCA')
+plt.show()
